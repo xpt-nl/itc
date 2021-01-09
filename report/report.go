@@ -253,7 +253,7 @@ func validateFinancialReportArgs(account, vendor int, regionCode, reportType str
 	if reportType != "Financial" {
 		return errors.New(`Worng report type: "Currently only one report type is available: Financial".`)
 	}
-	if fiscalYear > time.Now().Year() || fiscalYear <= 0 {
+	if fiscalYear > time.Now().Year()+1 || fiscalYear <= 0 {
 		return errors.New("Wrong fiscal year")
 	}
 	if fiscalPeriod < 1 || fiscalPeriod > 12 {
