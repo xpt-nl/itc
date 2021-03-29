@@ -1,7 +1,8 @@
 // Package fiscal contains functions to calculate the start and end dates of
 // fiscal years, quarters and periods (a period is roughly a month) as used by
-// Apple. The functions have been verfied by checking against uarterly reports
-// since the start of the 2006 fiscal year on the 25th of September 2005.
+// Apple. The functions have been verfied by checking against quarterly
+// reports since the start of the 2006 fiscal year on the 25th of September
+// 2005.
 package fiscal
 
 import (
@@ -58,10 +59,9 @@ func PeriodForDate(date time.Time) (year, period int) {
 	return
 }
 
-// Year returns the start and end date of a fiscal year as used by Apple.
-// @year must be 2006 or higher
-// @returns start and end date of the year. End is the last nanosecond before
-//	the start of the next year.
+// Year returns the start and end date of a fiscal year as used by Apple. The
+// year must be 2006 or higher, returns start and end date of the year. End is
+// the last nanosecond before the start of the next year.
 func Year(year int) (start, end time.Time) {
 	first := time.Date(2005, time.September, 25, 0, 0, 0, 0, time.UTC)
 	for start = first; true; start = end {
@@ -76,11 +76,10 @@ func Year(year int) (start, end time.Time) {
 	return
 }
 
-// Quarter returns the start and end date of a fiscal quarter as used by Apple.
-// @year must be 2006 or higher
-// @quarter must be in the range 1..4
-// @returns start and end date of the quarter. End is the last nanosecond before
-//	the start of the next quarter.
+// Quarter returns the start and end date of a fiscal quarter as used by
+// Apple. The year must be 2006 or higher, The quarter must be in the range
+// 1..4. Quarter returns start and end date of the quarter. End is the last
+// nanosecond before the start of the next quarter.
 func Quarter(year, quarter int) (start, end time.Time) {
 	start, end = Year(year)
 	if quarter < 1 {
@@ -102,11 +101,9 @@ func Quarter(year, quarter int) (start, end time.Time) {
 
 // Period returns the start and end date of a fiscal period as used by Apple.
 // A period is either 35 or 28 days and so is roughly equivalent to a single
-// month.
-// @year must be 2006 or higher
-// @period must be in the range 1..12
-// @returns start and end date of the period. End is the last nanosecond before
-//	the start of the next period.
+// month. The year must be 2006 or higher. The period must be in the range
+// 1..12. Period returns start and end date of the period. End is the last
+// nanosecond before the start of the next period.
 func Period(year, period int) (start, end time.Time) {
 	start, end = Year(year)
 	if period < 1 {
