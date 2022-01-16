@@ -19,8 +19,9 @@ var financeEndpoint = "https://reportingitc-reporter.apple.com/reportservice/fin
 
 // Client is reporter client
 type Client struct {
-	cfg     Config
-	httpCli *http.Client
+	AccessToken string
+	Mode        string
+	httpCli     *http.Client
 }
 
 // Config base properties
@@ -47,12 +48,13 @@ func (r *Request) SetAccount(account int) {
 
 // NewClient yield a new Client instance
 func NewClient(cfg Config) (*Client, error) {
-	err := checkConfig(cfg)
+	err := cfg.Check()
 	if err != nil {
 		return nil, err
 	}
 	return &Client{
-		cfg: cfg,
+		AccessToken: cfg.AccessToken,
+		Mode:        cfg.Mode,
 		httpCli: &http.Client{
 			Transport: &http.Transport{
 				Dial: (&net.Dialer{
@@ -66,6 +68,10 @@ func NewClient(cfg Config) (*Client, error) {
 			},
 		},
 	}, nil
+}
+
+func (c Client) CloseIdleConnections() {
+	c.httpCli.CloseIdleConnections()
 }
 
 // GetSalesStatus return Sales.getStatus response
@@ -99,7 +105,7 @@ func (c Client) GetFinanceAccounts() ([]byte, error) {
 // GetSalesVendors return Sales.getVendors response
 func (c Client) GetSalesVendors(account int) ([]byte, error) {
 	if account <= 0 {
-		return nil, errors.New("Wrong account number")
+		return nil, errors.New("wrong account number")
 	}
 	req := c.getBaseRequest()
 	req.QueryInput = fmt.Sprintf("%%5Bp%%3DReporter.properties%%2C+a%%3D%d%%2C+Sales.getVendors%%5D", account)
@@ -109,11 +115,11 @@ func (c Client) GetSalesVendors(account int) ([]byte, error) {
 // GetFinanceVendorsAndRegions return Finance.getVendors response
 func (c Client) GetFinanceVendorsAndRegions(account int) ([]byte, error) {
 	if account <= 0 {
-		return nil, errors.New("Wrong account number")
+		return nil, errors.New("wrong account number")
 	}
 	req := c.getBaseRequest()
 	req.SetAccount(account)
-	req.QueryInput = fmt.Sprintf("%%5Bp%%3DReporter.properties%%2C+m%%3D%s%%2C+Finance.getVendorsAndRegions%%5D", c.cfg.Mode)
+	req.QueryInput = fmt.Sprintf("%%5Bp%%3DReporter.properties%%2C+m%%3D%s%%2C+Finance.getVendorsAndRegions%%5D", c.Mode)
 	return c.send(financeEndpoint, req)
 }
 
@@ -126,7 +132,7 @@ func (c Client) GetSalesReport(account, vendor int, reportType, reportSubType, d
 	req := c.getBaseRequest()
 	req.SetAccount(account)
 	qI := "%%5Bp%%3DReporter.properties%%2C+m%%3D%s%%2C+Sales.getReport%%2C+%d%%2C%s%%2C%s%%2C%s%%2C%s%%5D"
-	req.QueryInput = fmt.Sprintf(qI, c.cfg.Mode, vendor, reportType, reportSubType, dateType, date)
+	req.QueryInput = fmt.Sprintf(qI, c.Mode, vendor, reportType, reportSubType, dateType, date)
 	return c.send(salesEndpoint, req)
 }
 
@@ -139,7 +145,7 @@ func (c Client) GetFinanceReport(account, vendor int, regionCode, reportType str
 	req := c.getBaseRequest()
 	req.SetAccount(account)
 	qI := "%%5Bp%%3DReporter.properties%%2C+m%%3D%s%%2C+Finance.getReport%%2C+%d%%2C%s%%2C%s%%2C%d%%2C%d%%5D"
-	req.QueryInput = fmt.Sprintf(qI, c.cfg.Mode, vendor, regionCode, reportType, fiscalYear, fiscalPeriod)
+	req.QueryInput = fmt.Sprintf(qI, c.Mode, vendor, regionCode, reportType, fiscalYear, fiscalPeriod)
 	return c.send(financeEndpoint, req)
 }
 
@@ -178,34 +184,34 @@ func (c Client) send(endpoint string, r Request) ([]byte, error) {
 
 func (c Client) getBaseRequest() Request {
 	return Request{
-		AccessToken: url.QueryEscape(c.cfg.AccessToken),
+		AccessToken: url.QueryEscape(c.AccessToken),
 		Version:     url.QueryEscape(fmt.Sprintf("%.1f", version)),
-		Mode:        url.QueryEscape(c.cfg.Mode),
+		Mode:        url.QueryEscape(c.Mode),
 		SalesURL:    url.QueryEscape(salesEndpoint),
 		FinanceURL:  url.QueryEscape(financeEndpoint),
 	}
 }
 
-func checkConfig(cfg Config) error {
+func (cfg Config) Check() error {
 	if cfg.Mode != "Normal" && cfg.Mode != "Robot.xml" {
-		return errors.New("Undefined mode. Use available modes: Normal or Robot.xml")
+		return errors.New("undefined mode. Use available modes: Normal or Robot.xml")
 	}
 	if cfg.AccessToken == "" {
-		return errors.New("AccessToken not set")
+		return errors.New("access token not set")
 	}
 	return nil
 }
 
 func validateSalesReportArgs(account, vendor int, reportType, reportSubType, dateType, date string) error {
 	if account <= 0 {
-		return errors.New("Wrong account number")
+		return errors.New("wrong account number")
 	}
 	if vendor <= 0 {
-		return errors.New("Wrong vendor number")
+		return errors.New("wrong vendor number")
 	}
 
 	if reportType != "Sales" && reportType != "Newsstand" {
-		return errors.New("Wrong ReportType, use: Sales or Newsstand")
+		return errors.New("wrong ReportType, use: Sales or Newsstand")
 	}
 
 	switch reportSubType {
@@ -213,28 +219,28 @@ func validateSalesReportArgs(account, vendor int, reportType, reportSubType, dat
 	case "Detailed":
 	case "Opt-In":
 	default:
-		return errors.New("Wrong ReportSubType, use: Summary, Detailed or Opt-In")
+		return errors.New("wrong ReportSubType, use: Summary, Detailed or Opt-In")
 	}
 
 	switch dateType {
 	case "Daily":
 		if len(date) != 8 {
-			return errors.New("Wrong DateType format for Daily Report, use: YYYYMMDD")
+			return errors.New("wrong DateType format for Daily Report, use: YYYYMMDD")
 		}
 	case "Weekly":
 		if len(date) != 8 {
-			return errors.New("Wrong DateType format for Weekly Report, use: YYYYMMDD")
+			return errors.New("wrong DateType format for Weekly Report, use: YYYYMMDD")
 		}
 	case "Monthly":
 		if len(date) != 6 {
-			return errors.New("Wrong DateType format for Monthly Report, use: YYYYMM")
+			return errors.New("wrong DateType format for Monthly Report, use: YYYYMM")
 		}
 	case "Yearly":
 		if len(date) != 4 {
-			return errors.New("Wrong DateType format for Yearly Report, use: YYYY")
+			return errors.New("wrong DateType format for Yearly Report, use: YYYY")
 		}
 	default:
-		return errors.New("Wrong DateType, use: Daily, Weekly, Monthly or Yearly")
+		return errors.New("wrong DateType, use: Daily, Weekly, Monthly or Yearly")
 	}
 
 	return nil
@@ -242,22 +248,22 @@ func validateSalesReportArgs(account, vendor int, reportType, reportSubType, dat
 
 func validateFinancialReportArgs(account, vendor int, regionCode, reportType string, fiscalYear, fiscalPeriod int) error {
 	if account <= 0 {
-		return errors.New("Wrong account number")
+		return errors.New("wrong account number")
 	}
 	if vendor <= 0 {
-		return errors.New("Wrong vendor number")
+		return errors.New("wrong vendor number")
 	}
 	if len(regionCode) != 2 {
-		return errors.New("Wrong region code")
+		return errors.New("wrong region code")
 	}
 	if reportType != "Financial" {
-		return errors.New(`Worng report type: "Currently only one report type is available: Financial".`)
+		return errors.New(`wrong report type: "Currently only one report type is available: Financial"`)
 	}
 	if fiscalYear > time.Now().Year()+1 || fiscalYear <= 0 {
-		return errors.New("Wrong fiscal year")
+		return errors.New("wrong fiscal year")
 	}
 	if fiscalPeriod < 1 || fiscalPeriod > 12 {
-		return errors.New("Wrong fiscal period, it should be: 1-12")
+		return errors.New("wrong fiscal period, it should be: 1-12")
 	}
 	return nil
 }
