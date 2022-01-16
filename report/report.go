@@ -1,6 +1,7 @@
 package report
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -75,56 +76,56 @@ func (c Client) CloseIdleConnections() {
 }
 
 // GetSalesStatus return Sales.getStatus response
-func (c Client) GetSalesStatus() ([]byte, error) {
+func (c Client) GetSalesStatus(ctx context.Context) ([]byte, error) {
 	req := c.getBaseRequest()
 	req.QueryInput = "%5Bp%3DReporter.properties%2C+Sales.getStatus%5D"
-	return c.send(salesEndpoint, req)
+	return c.send(ctx, salesEndpoint, req)
 }
 
 // GetFinanceStatus return Finance.getStatus response
-func (c Client) GetFinanceStatus() ([]byte, error) {
+func (c Client) GetFinanceStatus(ctx context.Context) ([]byte, error) {
 	req := c.getBaseRequest()
 	req.QueryInput = "%5Bp%3DReporter.properties%2C+Finance.getStatus%5D"
-	return c.send(financeEndpoint, req)
+	return c.send(ctx, financeEndpoint, req)
 }
 
 // GetSalesAccounts return Sales.getAccounts response
-func (c Client) GetSalesAccounts() ([]byte, error) {
+func (c Client) GetSalesAccounts(ctx context.Context) ([]byte, error) {
 	req := c.getBaseRequest()
 	req.QueryInput = "%5Bp%3DReporter.properties%2C+Sales.getAccounts%5D"
-	return c.send(salesEndpoint, req)
+	return c.send(ctx, salesEndpoint, req)
 }
 
 // GetFinanceAccounts return Finance.getAccounts response
-func (c Client) GetFinanceAccounts() ([]byte, error) {
+func (c Client) GetFinanceAccounts(ctx context.Context) ([]byte, error) {
 	req := c.getBaseRequest()
 	req.QueryInput = "%5Bp%3DReporter.properties%2C+Finance.getAccounts%5D"
-	return c.send(financeEndpoint, req)
+	return c.send(ctx, financeEndpoint, req)
 }
 
 // GetSalesVendors return Sales.getVendors response
-func (c Client) GetSalesVendors(account int) ([]byte, error) {
+func (c Client) GetSalesVendors(ctx context.Context, account int) ([]byte, error) {
 	if account <= 0 {
 		return nil, errors.New("wrong account number")
 	}
 	req := c.getBaseRequest()
 	req.QueryInput = fmt.Sprintf("%%5Bp%%3DReporter.properties%%2C+a%%3D%d%%2C+Sales.getVendors%%5D", account)
-	return c.send(salesEndpoint, req)
+	return c.send(ctx, salesEndpoint, req)
 }
 
 // GetFinanceVendorsAndRegions return Finance.getVendors response
-func (c Client) GetFinanceVendorsAndRegions(account int) ([]byte, error) {
+func (c Client) GetFinanceVendorsAndRegions(ctx context.Context, account int) ([]byte, error) {
 	if account <= 0 {
 		return nil, errors.New("wrong account number")
 	}
 	req := c.getBaseRequest()
 	req.SetAccount(account)
 	req.QueryInput = fmt.Sprintf("%%5Bp%%3DReporter.properties%%2C+m%%3D%s%%2C+Finance.getVendorsAndRegions%%5D", c.Mode)
-	return c.send(financeEndpoint, req)
+	return c.send(ctx, financeEndpoint, req)
 }
 
 // GetSalesReport return Sales.getReport response (is report file or error)
-func (c Client) GetSalesReport(account, vendor int, reportType, reportSubType, dateType, date string) ([]byte, error) {
+func (c Client) GetSalesReport(ctx context.Context, account, vendor int, reportType, reportSubType, dateType, date string) ([]byte, error) {
 	err := validateSalesReportArgs(account, vendor, reportType, reportSubType, dateType, date)
 	if err != nil {
 		return nil, err
@@ -133,11 +134,11 @@ func (c Client) GetSalesReport(account, vendor int, reportType, reportSubType, d
 	req.SetAccount(account)
 	qI := "%%5Bp%%3DReporter.properties%%2C+m%%3D%s%%2C+Sales.getReport%%2C+%d%%2C%s%%2C%s%%2C%s%%2C%s%%5D"
 	req.QueryInput = fmt.Sprintf(qI, c.Mode, vendor, reportType, reportSubType, dateType, date)
-	return c.send(salesEndpoint, req)
+	return c.send(ctx, salesEndpoint, req)
 }
 
 // GetFinanceReport return Finance.getReport response (is report file or error)
-func (c Client) GetFinanceReport(account, vendor int, regionCode, reportType string, fiscalYear, fiscalPeriod int) ([]byte, error) {
+func (c Client) GetFinanceReport(ctx context.Context, account, vendor int, regionCode, reportType string, fiscalYear, fiscalPeriod int) ([]byte, error) {
 	err := validateFinancialReportArgs(account, vendor, regionCode, reportType, fiscalYear, fiscalPeriod)
 	if err != nil {
 		return nil, err
@@ -146,17 +147,17 @@ func (c Client) GetFinanceReport(account, vendor int, regionCode, reportType str
 	req.SetAccount(account)
 	qI := "%%5Bp%%3DReporter.properties%%2C+m%%3D%s%%2C+Finance.getReport%%2C+%d%%2C%s%%2C%s%%2C%d%%2C%d%%5D"
 	req.QueryInput = fmt.Sprintf(qI, c.Mode, vendor, regionCode, reportType, fiscalYear, fiscalPeriod)
-	return c.send(financeEndpoint, req)
+	return c.send(ctx, financeEndpoint, req)
 }
 
-func (c Client) send(endpoint string, r Request) ([]byte, error) {
+func (c Client) send(ctx context.Context, endpoint string, r Request) ([]byte, error) {
 	q, err := json.Marshal(r)
 	if err != nil {
 		return nil, err
 	}
 
 	query := fmt.Sprintf("jsonRequest=%s", string(q))
-	req, err := http.NewRequest("POST", endpoint, strings.NewReader(query))
+	req, err := http.NewRequestWithContext(ctx, "POST", endpoint, strings.NewReader(query))
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -61,36 +62,38 @@ func main() {
 	cli, err := report.NewClient(cfg)
 	handleError(err)
 
-	if *app == "Sales" {
-		salesCommand(cli)
-	} else if *app == "Finance" {
-		financeCommand(cli)
-	} else {
+	ctx := context.Background()
+	switch *app {
+	case "Sales":
+		salesCommand(ctx, cli)
+	case "Finance":
+		financeCommand(ctx, cli)
+	default:
 		flag.PrintDefaults()
 	}
 	fmt.Print("\n")
 }
 
-func financeCommand(cli *report.Client) {
+func financeCommand(ctx context.Context, cli *report.Client) {
 	switch *cmd {
 	case "getStatus":
-		res, err := cli.GetSalesStatus()
+		res, err := cli.GetSalesStatus(ctx)
 		handleError(err)
 		fmt.Print(string(res))
 	case "getAccounts":
-		res, err := cli.GetSalesAccounts()
+		res, err := cli.GetSalesAccounts(ctx)
 		handleError(err)
 		fmt.Print(string(res))
 	case "getVendors":
-		res, err := cli.GetSalesVendors(*account)
+		res, err := cli.GetSalesVendors(ctx, *account)
 		handleError(err)
 		fmt.Print(string(res))
 	case "getVendorsAndRegions":
-		res, err := cli.GetFinanceVendorsAndRegions(*account)
+		res, err := cli.GetFinanceVendorsAndRegions(ctx, *account)
 		handleError(err)
 		fmt.Print(string(res))
 	case "getReport":
-		res, err := cli.GetFinanceReport(*account, *vendor, *regionCode, *reportType, *fiscalYear, *fiscalPeriod)
+		res, err := cli.GetFinanceReport(ctx, *account, *vendor, *regionCode, *reportType, *fiscalYear, *fiscalPeriod)
 		handleError(err)
 		fileName := fmt.Sprintf("FinanceReport_%s.gz", *date)
 		ioutil.WriteFile(fileName, res, 0644)
@@ -100,22 +103,22 @@ func financeCommand(cli *report.Client) {
 	}
 }
 
-func salesCommand(cli *report.Client) {
+func salesCommand(ctx context.Context, cli *report.Client) {
 	switch *cmd {
 	case "getStatus":
-		res, err := cli.GetSalesStatus()
+		res, err := cli.GetSalesStatus(ctx)
 		handleError(err)
 		fmt.Print(string(res))
 	case "getAccounts":
-		res, err := cli.GetSalesAccounts()
+		res, err := cli.GetSalesAccounts(ctx)
 		handleError(err)
 		fmt.Print(string(res))
 	case "getVendors":
-		res, err := cli.GetSalesVendors(*account)
+		res, err := cli.GetSalesVendors(ctx, *account)
 		handleError(err)
 		fmt.Print(string(res))
 	case "getReport":
-		res, err := cli.GetSalesReport(*account, *vendor, *reportType, *reportSubType, *dateType, *date)
+		res, err := cli.GetSalesReport(ctx, *account, *vendor, *reportType, *reportSubType, *dateType, *date)
 		handleError(err)
 		fileName := fmt.Sprintf("SalesReport_%s.gz", *date)
 		ioutil.WriteFile(fileName, res, 0644)
