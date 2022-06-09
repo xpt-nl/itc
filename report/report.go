@@ -15,8 +15,8 @@ import (
 )
 
 var version = 2.1
-var salesEndpoint = "https://reportingitc-reporter-sh-prz.apple.com/reportservice/sales/v1"
-var financeEndpoint = "https://reportingitc-reporter-sh-prz.apple.com/reportservice/finance/v1"
+var salesEndpoint = "https://reportingitc-reporter.apple.com/reportservice/sales/v1"
+var financeEndpoint = "https://reportingitc-reporter.apple.com/reportservice/finance/v1"
 
 // Client is reporter client
 type Client struct {
